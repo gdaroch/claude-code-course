@@ -1,44 +1,53 @@
-import http from 'node:http';
-import { fetchWeather } from './weather.js';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import express from 'express';
+import { fetchWeather, describeCode } from './weather.js';
 import { getCached } from './cache.js';
-import { renderPage, renderError } from './render.js';
 
 const PORT = process.env.PORT ?? 3000;
+const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
 
-function send(res, status, html, headers = {}) {
-  res.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8', ...headers });
-  res.end(html);
+const app = express();
+
+app.use(express.static(PUBLIC_DIR));
+
+function toPayload({ data, fetchedAt, fromCache }) {
+  return {
+    fetchedAt,
+    fromCache,
+    cities: data.map((city) => ({
+      ...city,
+      current: { ...city.current, condition: describeCode(city.current.weather_code) },
+      tomorrow: { ...city.tomorrow, condition: describeCode(city.tomorrow.weather_code) },
+    })),
+  };
 }
 
-async function showWeather(res, { force = false } = {}) {
+app.get('/api/weather', async (req, res, next) => {
   try {
-    const result = await getCached(fetchWeather, { force });
-    send(res, 200, renderPage(result));
+    res.json(toPayload(await getCached(fetchWeather)));
   } catch (err) {
-    send(res, 502, renderError(err.message));
+    next(err);
   }
-}
-
-const server = http.createServer(async (req, res) => {
-  const { pathname } = new URL(req.url, `http://${req.headers.host}`);
-
-  if (pathname === '/' && req.method === 'GET') {
-    return showWeather(res);
-  }
-
-  if (pathname === '/refresh' && req.method === 'POST') {
-    try {
-      await getCached(fetchWeather, { force: true });
-      res.writeHead(303, { Location: '/' });
-      return res.end();
-    } catch (err) {
-      return send(res, 502, renderError(err.message));
-    }
-  }
-
-  send(res, 404, renderError('Página no encontrada'));
 });
 
-server.listen(PORT, () => {
+app.post('/api/refresh', async (req, res, next) => {
+  try {
+    res.json(toPayload(await getCached(fetchWeather, { force: true })));
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Recurso no encontrado' });
+});
+
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(502).json({ error: err.message });
+});
+
+app.listen(PORT, () => {
   console.log(`Weather viewer en http://localhost:${PORT}`);
 });
