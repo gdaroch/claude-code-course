@@ -4,11 +4,13 @@ Muestra en una tabla HTML el clima actual y el de mañana para Valparaíso y San
 
 ## Requisitos
 
-- Node.js 18 o superior (usa `fetch` nativo). No tiene dependencias npm.
+- Node.js 18 o superior (usa `fetch` nativo).
+- Dependencias: [Express](https://expressjs.com/) (`npm install`).
 
 ## Uso
 
 ```bash
+npm install
 npm start
 ```
 
@@ -25,7 +27,7 @@ El botón **Refrescar** descarta la caché y vuelve a consultar la API.
 
 ## Estructura
 
-- `src/server.js`: servidor HTTP (`GET /`, `POST /refresh`).
+- `src/server.js`: servidor Express (sirve `public/` y expone `GET /api/weather`, `POST /api/refresh`).
 - `src/weather.js`: cliente de Open-Meteo y descripción de códigos WMO.
 - `src/cache.js`: caché en memoria con TTL.
-- `src/render.js`: generación del HTML.
+- `public/index.html`: página con la tabla y estilo sencillo; consume la API JSON.

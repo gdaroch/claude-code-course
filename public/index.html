@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clima en Valparaíso y Santiago</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0 auto; padding: 24px 16px; max-width: 1000px; color: #1a1a1a; background: #fafafa; }
+    h1 { margin-top: 0; }
+    .table-wrap { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; background: #fff; }
+    th, td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; white-space: nowrap; }
+    thead th { background: #eef2f6; }
+    th[scope="colgroup"] { text-align: center; }
+    .meta { display: flex; align-items: center; gap: 12px; margin-top: 16px; color: #555; }
+    button { padding: 6px 14px; font: inherit; cursor: pointer; }
+    .error { color: #b00020; }
+  </style>
+</head>
+<body>
+  <h1>Clima en Valparaíso y Santiago</h1>
+  <p id="error" class="error" hidden></p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th rowspan="2">Ciudad</th>
+          <th colspan="5" scope="colgroup">Ahora</th>
+          <th colspan="4" scope="colgroup">Mañana</th>
+        </tr>
+        <tr>
+          <th>Condición</th><th>Temperatura</th><th>Sensación</th><th>Humedad</th><th>Viento</th>
+          <th>Condición</th><th>Mín / Máx</th><th>Prob. lluvia</th><th>Precipitación</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <div class="meta">
+    <span id="status">Cargando…</span>
+    <button id="refresh" type="button">Refrescar</button>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const unit = (value, u) => `${value} ${u}`;
+
+    function renderRow({ name, units, current, tomorrow }) {
+      const c = units.current;
+      const d = units.daily;
+      const cells = [
+        current.condition,
+        unit(current.temperature_2m, c.temperature_2m),
+        unit(current.apparent_temperature, c.apparent_temperature),
+        unit(current.relative_humidity_2m, c.relative_humidity_2m),
+        unit(current.wind_speed_10m, c.wind_speed_10m),
+        tomorrow.condition,
+        `${unit(tomorrow.temperature_2m_min, d.temperature_2m_min)} / ${unit(tomorrow.temperature_2m_max, d.temperature_2m_max)}`,
+        unit(tomorrow.precipitation_probability_max, d.precipitation_probability_max),
+        unit(tomorrow.precipitation_sum, d.precipitation_sum),
+      ];
+
+      const tr = document.createElement('tr');
+      const th = document.createElement('th');
+      th.scope = 'row';
+      th.textContent = name;
+      tr.append(th);
+      for (const text of cells) {
+        const td = document.createElement('td');
+        td.textContent = text;
+        tr.append(td);
+      }
+      return tr;
+    }
+
+    function render({ cities, fetchedAt, fromCache }) {
+      $('rows').replaceChildren(...cities.map(renderRow));
+      const time = new Date(fetchedAt).toLocaleTimeString('es-CL', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'America/Santiago',
+      });
+      $('status').textContent = `Actualizado a las ${time} (${fromCache ? 'desde caché' : 'recién consultado'})`;
+      $('error').hidden = true;
+    }
+
+    async function load(url, options) {
+      $('refresh').disabled = true;
+      try {
+        const res = await fetch(url, options);
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.error ?? `Error ${res.status}`);
+        render(body);
+      } catch (err) {
+        $('error').textContent = `No se pudo obtener el clima: ${err.message}`;
+        $('error').hidden = false;
+        $('status').textContent = '';
+      } finally {
+        $('refresh').disabled = false;
+      }
+    }
+
+    $('refresh').addEventListener('click', () => load('/api/refresh', { method: 'POST' }));
+    load('/api/weather');
+  </script>
+</body>
+</html>
