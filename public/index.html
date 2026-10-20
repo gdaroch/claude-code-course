@@ -4,77 +4,205 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Clima en Valparaíso y Santiago</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&display=swap" rel="stylesheet">
   <style>
-    body { font-family: system-ui, sans-serif; margin: 0 auto; padding: 24px 16px; max-width: 1000px; color: #1a1a1a; background: #fafafa; }
-    h1 { margin-top: 0; }
-    .table-wrap { overflow-x: auto; }
-    table { border-collapse: collapse; width: 100%; background: #fff; }
-    th, td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; white-space: nowrap; }
-    thead th { background: #eef2f6; }
-    th[scope="colgroup"] { text-align: center; }
-    .meta { display: flex; align-items: center; gap: 12px; margin-top: 16px; color: #555; }
-    button { padding: 6px 14px; font: inherit; cursor: pointer; }
-    .error { color: #b00020; }
+    :root {
+      --fog: #e9eef0;
+      --paper: #f7f9fa;
+      --ink: #0e2633;
+      --ink-soft: #4d6471;
+      --line: #c3d0d6;
+      --valpo: #17606b;
+      --santiago: #54479a;
+      --error: #a3162f;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0 auto;
+      padding: clamp(24px, 6vw, 72px) 16px 48px;
+      max-width: 880px;
+      font-family: "Bricolage Grotesque", system-ui, sans-serif;
+      font-variation-settings: "opsz" 14;
+      color: var(--ink);
+      background: var(--fog);
+      line-height: 1.45;
+    }
+
+    h1 {
+      margin: 0 0 clamp(28px, 5vw, 56px);
+      max-width: 18ch;
+      font-size: clamp(2rem, 6.4vw, 3.9rem);
+      font-weight: 600;
+      font-stretch: 85%;
+      font-variation-settings: "opsz" 96;
+      line-height: 1.04;
+      letter-spacing: -0.02em;
+      text-wrap: balance;
+    }
+
+    .error {
+      margin: 0 0 20px;
+      padding: 10px 14px;
+      border-left: 4px solid var(--error);
+      background: var(--paper);
+      color: var(--error);
+    }
+
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    th, td { padding: 10px 12px 10px 0; text-align: left; vertical-align: baseline; font-weight: 400; }
+    tbody tr:not(:last-child) > * { border-bottom: 1px solid var(--line); }
+
+    thead th {
+      padding-bottom: 12px;
+      border-top: 6px solid var(--city);
+      padding-top: 10px;
+      font-size: clamp(1.15rem, 3.4vw, 1.6rem);
+      font-weight: 650;
+      font-stretch: 90%;
+      letter-spacing: -0.01em;
+    }
+    thead th:first-child { border-top-color: transparent; width: 30%; }
+    thead th[data-city="valpo"] { --city: var(--valpo); }
+    thead th[data-city="santiago"] { --city: var(--santiago); }
+
+    tbody th[scope="rowgroup"] {
+      padding: 36px 0 6px;
+      border-bottom: 2px solid var(--ink);
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+    tbody:first-of-type th[scope="rowgroup"] { padding-top: 20px; }
+
+    tbody th[scope="row"] { color: var(--ink-soft); font-size: 0.92rem; }
+    td { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+    tr.big td {
+      font-size: clamp(1.9rem, 6vw, 3rem);
+      font-weight: 300;
+      font-stretch: 80%;
+      font-variation-settings: "opsz" 96;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+    tr.big td:nth-child(2) { color: var(--valpo); }
+    tr.big td:nth-child(3) { color: var(--santiago); }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px 20px;
+      margin-top: 40px;
+      color: var(--ink-soft);
+      font-size: 0.92rem;
+    }
+
+    button {
+      padding: 9px 18px;
+      border: 0;
+      border-radius: 2px;
+      background: var(--ink);
+      color: var(--paper);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.15s;
+    }
+    button:hover:not(:disabled) { background: #1d4258; }
+    button:disabled { opacity: 0.55; cursor: progress; }
+    button:focus-visible { outline: 3px solid var(--valpo); outline-offset: 3px; }
+
+    @media (max-width: 520px) {
+      th, td { padding-right: 8px; }
+      thead th:first-child { width: 26%; }
+      tbody th[scope="row"] { font-size: 0.8rem; }
+      td { font-size: 0.95rem; }
+    }
   </style>
 </head>
 <body>
-  <h1>Clima en Valparaíso y Santiago</h1>
-  <p id="error" class="error" hidden></p>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th rowspan="2">Ciudad</th>
-          <th colspan="5" scope="colgroup">Ahora</th>
-          <th colspan="4" scope="colgroup">Mañana</th>
-        </tr>
-        <tr>
-          <th>Condición</th><th>Temperatura</th><th>Sensación</th><th>Humedad</th><th>Viento</th>
-          <th>Condición</th><th>Mín / Máx</th><th>Prob. lluvia</th><th>Precipitación</th>
-        </tr>
-      </thead>
-      <tbody id="rows"></tbody>
-    </table>
-  </div>
+  <h1 id="headline" aria-live="polite">Valparaíso y Santiago</h1>
+  <p id="error" class="error" role="alert" hidden></p>
+
+  <table>
+    <thead>
+      <tr>
+        <td></td>
+        <th scope="col" data-city="valpo">Valparaíso</th>
+        <th scope="col" data-city="santiago">Santiago</th>
+      </tr>
+    </thead>
+    <tbody id="now"></tbody>
+    <tbody id="tomorrow"></tbody>
+  </table>
+
   <div class="meta">
-    <span id="status">Cargando…</span>
     <button id="refresh" type="button">Refrescar</button>
+    <span id="status" aria-live="polite">Cargando…</span>
   </div>
 
   <script>
     const $ = (id) => document.getElementById(id);
     const unit = (value, u) => `${value} ${u}`;
 
-    function renderRow({ name, units, current, tomorrow }) {
-      const c = units.current;
-      const d = units.daily;
-      const cells = [
-        current.condition,
-        unit(current.temperature_2m, c.temperature_2m),
-        unit(current.apparent_temperature, c.apparent_temperature),
-        unit(current.relative_humidity_2m, c.relative_humidity_2m),
-        unit(current.wind_speed_10m, c.wind_speed_10m),
-        tomorrow.condition,
-        `${unit(tomorrow.temperature_2m_min, d.temperature_2m_min)} / ${unit(tomorrow.temperature_2m_max, d.temperature_2m_max)}`,
-        unit(tomorrow.precipitation_probability_max, d.precipitation_probability_max),
-        unit(tomorrow.precipitation_sum, d.precipitation_sum),
-      ];
+    // Each row: [label, text for a city, emphasis]
+    const NOW_ROWS = [
+      ['Condición', ({ current }) => current.condition],
+      ['Temperatura', ({ current, units }) => unit(current.temperature_2m, units.current.temperature_2m), 'big'],
+      ['Sensación', ({ current, units }) => unit(current.apparent_temperature, units.current.apparent_temperature)],
+      ['Humedad', ({ current, units }) => unit(current.relative_humidity_2m, units.current.relative_humidity_2m)],
+      ['Viento', ({ current, units }) => unit(current.wind_speed_10m, units.current.wind_speed_10m)],
+    ];
 
-      const tr = document.createElement('tr');
-      const th = document.createElement('th');
-      th.scope = 'row';
-      th.textContent = name;
-      tr.append(th);
-      for (const text of cells) {
-        const td = document.createElement('td');
-        td.textContent = text;
-        tr.append(td);
-      }
-      return tr;
+    const TOMORROW_ROWS = [
+      ['Condición', ({ tomorrow }) => tomorrow.condition],
+      ['Mín / Máx', ({ tomorrow: t, units: { daily: d } }) =>
+        `${unit(t.temperature_2m_min, d.temperature_2m_min)} / ${unit(t.temperature_2m_max, d.temperature_2m_max)}`, 'big'],
+      ['Prob. lluvia', ({ tomorrow, units }) => unit(tomorrow.precipitation_probability_max, units.daily.precipitation_probability_max)],
+      ['Precipitación', ({ tomorrow, units }) => unit(tomorrow.precipitation_sum, units.daily.precipitation_sum)],
+    ];
+
+    function renderGroup(tbody, title, rows, cities) {
+      const head = document.createElement('tr');
+      const h = document.createElement('th');
+      h.scope = 'rowgroup';
+      h.colSpan = cities.length + 1;
+      h.textContent = title;
+      head.append(h);
+
+      const trs = rows.map(([label, text, emphasis]) => {
+        const tr = document.createElement('tr');
+        if (emphasis) tr.className = emphasis;
+        const th = document.createElement('th');
+        th.scope = 'row';
+        th.textContent = label;
+        tr.append(th);
+        for (const city of cities) {
+          const td = document.createElement('td');
+          td.textContent = text(city);
+          tr.append(td);
+        }
+        return tr;
+      });
+      tbody.replaceChildren(head, ...trs);
+    }
+
+    function headline(cities) {
+      if (cities.length < 2) return cities[0]?.name ?? '';
+      const [cold, warm] = [...cities].sort((a, b) => a.current.temperature_2m - b.current.temperature_2m);
+      const diff = Math.round((warm.current.temperature_2m - cold.current.temperature_2m) * 10) / 10;
+      if (diff < 1) return `${cold.name} y ${warm.name} tienen casi la misma temperatura ahora`;
+      return `Ahora ${warm.name} está ${unit(diff, warm.units.current.temperature_2m)} más cálido que ${cold.name}`;
     }
 
     function render({ cities, fetchedAt, fromCache }) {
-      $('rows').replaceChildren(...cities.map(renderRow));
+      $('headline').textContent = headline(cities);
+      renderGroup($('now'), 'Ahora', NOW_ROWS, cities);
+      renderGroup($('tomorrow'), 'Mañana', TOMORROW_ROWS, cities);
       const time = new Date(fetchedAt).toLocaleTimeString('es-CL', {
         hour: '2-digit',
         minute: '2-digit',
