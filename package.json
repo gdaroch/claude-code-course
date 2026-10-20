@@ -1,0 +1,13 @@
+{
+  "name": "weather-viewer",
+  "version": "1.0.0",
+  "description": "Clima actual y de mañana para Valparaíso y Santiago usando Open-Meteo",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
